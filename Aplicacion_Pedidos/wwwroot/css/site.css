@@ -19,4 +19,54 @@ html {
 
 body {
   margin-bottom: 60px;
+  background-color: #f8f9fa;
+}
+
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    white-space: nowrap;
+    line-height: 60px;
+}
+
+.footer a {
+    color: #fff;
+    text-decoration: none;
+}
+
+.footer a:hover {
+    color: #0d6efd;
+}
+
+.navbar {
+    padding: 0.5rem 1rem;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+
+.card {
+    transition: transform 0.2s;
+    margin-bottom: 1rem;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.nav-link {
+    padding: 0.5rem 1rem;
+}
+
+.nav-link i {
+    margin-right: 0.5rem;
+}
+
+.alert {
+    border-radius: 0.5rem;
+    margin-top: 2rem;
 }
