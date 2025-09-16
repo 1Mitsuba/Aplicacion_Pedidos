@@ -15,6 +15,22 @@ namespace Aplicacion_Pedidos.Controllers
 
         public IActionResult Index()
         {
+            ViewData["Title"] = "Bienvenido a Sistema de Pedidos";
+            ViewData["Message"] = "Sistema de gestión de pedidos y productos";
+            return View();
+        }
+
+        public IActionResult About()
+        {
+            ViewData["Title"] = "Acerca de";
+            ViewData["Message"] = "Sistema de gestión para control de pedidos";
+            return View();
+        }
+
+        public IActionResult Contact()
+        {
+            ViewData["Title"] = "Contacto";
+            ViewData["Message"] = "Información de contacto";
             return View();
         }
 
