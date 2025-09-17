@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Aplicacion_Pedidos.Data.Extensions;
+using Aplicacion_Pedidos.Models;
 
 namespace Aplicacion_Pedidos.Data
 {
@@ -10,10 +11,25 @@ namespace Aplicacion_Pedidos.Data
         {
         }
 
+        public DbSet<User> Users { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
             modelBuilder.AddAuditProperties();
+
+            // Configuración específica para User
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
+            // Aseguramos que el Email se guarde en minúsculas
+            modelBuilder.Entity<User>()
+                .Property(u => u.Email)
+                .HasConversion(
+                    v => v.ToLowerInvariant(),
+                    v => v
+                );
         }
 
         public override int SaveChanges()
