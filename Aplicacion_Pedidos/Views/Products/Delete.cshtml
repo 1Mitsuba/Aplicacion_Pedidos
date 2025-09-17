@@ -1,0 +1,59 @@
+@model Aplicacion_Pedidos.Models.Product
+
+@{
+    ViewData["Title"] = "Eliminar Producto";
+}
+
+<div class="alert alert-danger">
+    <h4><i class="fas fa-exclamation-triangle"></i> ¿Está seguro que desea eliminar este producto?</h4>
+    <p>Esta acción no se puede deshacer.</p>
+</div>
+
+<div class="card">
+    <div class="row g-0">
+        <div class="col-md-4">
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" class="img-fluid rounded-start" alt="@Model.Name">
+            }
+            else
+            {
+                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 100%;">
+                    <i class="fas fa-image fa-3x text-muted"></i>
+                </div>
+            }
+        </div>
+        <div class="col-md-8">
+            <div class="card-body">
+                <h3 class="card-title">@Model.Name</h3>
+
+                <dl class="row">
+                    <dt class="col-sm-3">Descripción</dt>
+                    <dd class="col-sm-9">@Model.Description</dd>
+
+                    <dt class="col-sm-3">Precio</dt>
+                    <dd class="col-sm-9">$@Model.Price.ToString("N2")</dd>
+
+                    <dt class="col-sm-3">Stock</dt>
+                    <dd class="col-sm-9">@Model.Stock unidades</dd>
+
+                    @if (!string.IsNullOrEmpty(Model.SKU))
+                    {
+                        <dt class="col-sm-3">SKU</dt>
+                        <dd class="col-sm-9">@Model.SKU</dd>
+                    }
+                </dl>
+
+                <form asp-action="Delete" class="mt-3">
+                    <input type="hidden" asp-for="Id" />
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Confirmar Eliminación
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

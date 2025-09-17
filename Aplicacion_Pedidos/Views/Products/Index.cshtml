@@ -1,0 +1,71 @@
+@model IEnumerable<Aplicacion_Pedidos.Models.Product>
+
+@{
+    ViewData["Title"] = "Productos";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Catálogo de Productos</h1>
+    @if (User.IsInRole("Admin") || User.IsInRole("Empleado"))
+    {
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Crear Nuevo
+        </a>
+    }
+</div>
+
+<div class="row">
+    @foreach (var item in Model)
+    {
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                @if (!string.IsNullOrEmpty(item.ImageUrl))
+                {
+                    <img src="@item.ImageUrl" class="card-img-top" alt="@item.Name" style="height: 200px; object-fit: cover;">
+                }
+                else
+                {
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                        <i class="fas fa-image fa-3x text-muted"></i>
+                    </div>
+                }
+                <div class="card-body">
+                    <h5 class="card-title">@item.Name</h5>
+                    <p class="card-text text-truncate">@item.Description</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">$@item.Price.ToString("N2")</h6>
+                        <span class="badge @(item.Stock > 0 ? "bg-success" : "bg-danger")">
+                            Stock: @item.Stock
+                        </span>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="btn-group w-100">
+                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary">
+                            <i class="fas fa-info-circle"></i>
+                        </a>
+                        @if (User.IsInRole("Admin") || User.IsInRole("Empleado"))
+                        {
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-warning">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        }
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> No hay productos disponibles.
+    </div>
+}
