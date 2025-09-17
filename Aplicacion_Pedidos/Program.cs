@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Aplicacion_Pedidos.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Aplicacion_Pedidos.Data;
+using Aplicacion_Pedidos.Data.Seeders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +30,21 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+}
+
+// Inicializar datos de prueba
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        await DbInitializer.Initialize(services);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Ocurrió un error al inicializar la base de datos.");
+    }
 }
 
 app.UseHttpsRedirection();
