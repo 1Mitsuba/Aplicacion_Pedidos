@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Aplicacion_Pedidos.Data;
 using Aplicacion_Pedidos.Models;
 using Aplicacion_Pedidos.Models.Enums;
+using Aplicacion_Pedidos.Models.ViewModels;
 using Aplicacion_Pedidos.Filters;
 
 namespace Aplicacion_Pedidos.Controllers

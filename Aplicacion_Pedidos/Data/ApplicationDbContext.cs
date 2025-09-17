@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Aplicacion_Pedidos.Data.Extensions;
 using Aplicacion_Pedidos.Models;
+using Aplicacion_Pedidos.Data.Extensions;
 
 namespace Aplicacion_Pedidos.Data
 {
@@ -11,28 +11,21 @@ namespace Aplicacion_Pedidos.Data
         {
         }
 
-        public DbSet<User> Users { get; set; } = null!;
-        public DbSet<Product> Products { get; set; } = null!;
+        public DbSet<User> Users { get; set; }
+        public DbSet<Product> Products { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            modelBuilder.AddAuditProperties();
 
-            // Configuración específica para User
+            // Configuración de Users
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
-            // Aseguramos que el Email se guarde en minúsculas
-            modelBuilder.Entity<User>()
-                .Property(u => u.Email)
-                .HasConversion(
-                    v => v.ToLowerInvariant(),
-                    v => v
-                );
-
-            // Configuración específica para Product
+            // Configuración de Products
             modelBuilder.Entity<Product>()
                 .Property(p => p.Price)
                 .HasPrecision(18, 2);
@@ -42,38 +35,40 @@ namespace Aplicacion_Pedidos.Data
                 .IsUnique()
                 .HasFilter("[SKU] IS NOT NULL");
 
+            // Configuración de Orders
+            modelBuilder.Entity<Order>()
+                .Property(o => o.Total)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.User)
+                .WithMany()
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configuración de OrderItems
+            modelBuilder.Entity<OrderItem>()
+                .Property(oi => oi.UnitPrice)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<OrderItem>()
+                .Property(oi => oi.Subtotal)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.Order)
+                .WithMany(o => o.OrderItems)
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.Product)
+                .WithMany()
+                .HasForeignKey(oi => oi.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // Aplicar configuraciones adicionales
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
-        }
-
-        public override int SaveChanges()
-        {
-            UpdateAuditFields();
-            return base.SaveChanges();
-        }
-
-        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        {
-            UpdateAuditFields();
-            return base.SaveChangesAsync(cancellationToken);
-        }
-
-        private void UpdateAuditFields()
-        {
-            var entries = ChangeTracker.Entries()
-                .Where(e => e.Entity is Models.Base.BaseEntity && (e.State == EntityState.Added || e.State == EntityState.Modified));
-
-            foreach (var entry in entries)
-            {
-                if (entry.State == EntityState.Added)
-                {
-                    ((Models.Base.BaseEntity)entry.Entity).CreatedAt = DateTime.UtcNow;
-                }
-                else if (entry.State == EntityState.Modified)
-                {
-                    ((Models.Base.BaseEntity)entry.Entity).UpdatedAt = DateTime.UtcNow;
-                }
-            }
         }
     }
 }
