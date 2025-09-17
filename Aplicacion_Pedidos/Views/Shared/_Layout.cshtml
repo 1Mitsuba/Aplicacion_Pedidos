@@ -19,13 +19,33 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="Index">Inicio</a>
+                            <a class="nav-link" asp-controller="Home" asp-action="Index">
+                                <i class="fas fa-home"></i> Inicio
+                            </a>
                         </li>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Users" asp-action="Index">
+                                        <i class="fas fa-users"></i> Usuarios
+                                    </a>
+                                </li>
+                            }
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Users" asp-action="Index">Usuarios</a>
+                                <a class="nav-link" asp-controller="Products" asp-action="Index">
+                                    <i class="fas fa-box"></i> Productos
+                                </a>
                             </li>
+                            @if (User.IsInRole("Admin") || User.IsInRole("Empleado"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Orders" asp-action="Index">
+                                        <i class="fas fa-shopping-cart"></i> Pedidos
+                                    </a>
+                                </li>
+                            }
                         }
                     </ul>
                     <ul class="navbar-nav">
@@ -36,8 +56,17 @@
                                     <i class="fas fa-user"></i> @User.Identity.Name
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end">
-                                    <h6 class="dropdown-header">Rol: @User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</h6>
+                                    <h6 class="dropdown-header">
+                                        <i class="fas fa-user-tag"></i> Rol: @User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                                    </h6>
                                     <div class="dropdown-divider"></div>
+                                    @if (User.IsInRole("Cliente"))
+                                    {
+                                        <a class="dropdown-item" asp-controller="Orders" asp-action="MyOrders">
+                                            <i class="fas fa-list"></i> Mis Pedidos
+                                        </a>
+                                        <div class="dropdown-divider"></div>
+                                    }
                                     <form asp-controller="Auth" asp-action="Logout" method="post">
                                         @Html.AntiForgeryToken()
                                         <button type="submit" class="dropdown-item">

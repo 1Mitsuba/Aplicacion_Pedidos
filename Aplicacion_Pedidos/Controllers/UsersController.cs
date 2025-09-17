@@ -5,9 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Aplicacion_Pedidos.Data;
 using Aplicacion_Pedidos.Models;
+using Aplicacion_Pedidos.Models.Enums;
+using Aplicacion_Pedidos.Filters;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Aplicacion_Pedidos.Controllers
 {
+    [Authorize]
     public class UsersController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -18,12 +22,14 @@ namespace Aplicacion_Pedidos.Controllers
         }
 
         // GET: Users
+        [AuthorizeRoles(UserRole.Admin)]
         public async Task<IActionResult> Index()
         {
             return View(await _context.Users.ToListAsync());
         }
 
         // GET: Users/Details/5
+        [AuthorizeRoles(UserRole.Admin)]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -42,6 +48,7 @@ namespace Aplicacion_Pedidos.Controllers
         }
 
         // GET: Users/Create
+        [AuthorizeRoles(UserRole.Admin)]
         public IActionResult Create()
         {
             return View();
@@ -50,6 +57,7 @@ namespace Aplicacion_Pedidos.Controllers
         // POST: Users/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [AuthorizeRoles(UserRole.Admin)]
         public async Task<IActionResult> Create([Bind("Name,Email,Password,Role,PhoneNumber,Address,IsActive")] User user)
         {
             if (ModelState.IsValid)
@@ -63,6 +71,7 @@ namespace Aplicacion_Pedidos.Controllers
         }
 
         // GET: Users/Edit/5
+        [AuthorizeRoles(UserRole.Admin)]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -81,6 +90,7 @@ namespace Aplicacion_Pedidos.Controllers
         // POST: Users/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [AuthorizeRoles(UserRole.Admin)]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Email,Password,Role,PhoneNumber,Address,IsActive")] User user)
         {
             if (id != user.Id)
@@ -113,6 +123,7 @@ namespace Aplicacion_Pedidos.Controllers
         }
 
         // GET: Users/Delete/5
+        [AuthorizeRoles(UserRole.Admin)]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -133,6 +144,7 @@ namespace Aplicacion_Pedidos.Controllers
         // POST: Users/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [AuthorizeRoles(UserRole.Admin)]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var user = await _context.Users.FindAsync(id);
