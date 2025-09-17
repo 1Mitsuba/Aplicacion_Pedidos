@@ -12,6 +12,7 @@ namespace Aplicacion_Pedidos.Data
         }
 
         public DbSet<User> Users { get; set; } = null!;
+        public DbSet<Product> Products { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -30,6 +31,19 @@ namespace Aplicacion_Pedidos.Data
                     v => v.ToLowerInvariant(),
                     v => v
                 );
+
+            // Configuración específica para Product
+            modelBuilder.Entity<Product>()
+                .Property(p => p.Price)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Product>()
+                .HasIndex(p => p.SKU)
+                .IsUnique()
+                .HasFilter("[SKU] IS NOT NULL");
+
+            // Aplicar configuraciones adicionales
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
         }
 
         public override int SaveChanges()
