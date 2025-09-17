@@ -60,6 +60,22 @@ namespace Aplicacion_Pedidos.Controllers
         [AuthorizeRoles(UserRole.Admin, UserRole.Empleado)]
         public async Task<IActionResult> Create([Bind("Name,Description,Price,Stock,SKU,ImageFile,IsActive")] Product product)
         {
+            // Validación adicional para precio y stock
+            if (product.Price <= 0)
+            {
+                ModelState.AddModelError("Price", "El precio debe ser mayor que cero");
+            }
+            if (product.Stock < 0)
+            {
+                ModelState.AddModelError("Stock", "El stock no puede ser negativo");
+            }
+
+            // Validación de SKU único si se proporciona
+            if (!string.IsNullOrEmpty(product.SKU) && await _context.Products.AnyAsync(p => p.SKU == product.SKU))
+            {
+                ModelState.AddModelError("SKU", "Este SKU ya está en uso");
+            }
+
             if (ModelState.IsValid)
             {
                 if (product.ImageFile != null)
@@ -71,6 +87,14 @@ namespace Aplicacion_Pedidos.Controllers
                     // Asegurarse de que el directorio existe
                     Directory.CreateDirectory(uploadsFolder);
 
+                    // Validar el tipo de archivo usando el contenido real
+                    var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif" };
+                    if (!allowedTypes.Contains(product.ImageFile.ContentType.ToLower()))
+                    {
+                        ModelState.AddModelError("ImageFile", "Solo se permiten archivos de imagen (JPEG, PNG, GIF)");
+                        return View(product);
+                    }
+
                     using (var fileStream = new FileStream(filePath, FileMode.Create))
                     {
                         await product.ImageFile.CopyToAsync(fileStream);
@@ -81,8 +105,17 @@ namespace Aplicacion_Pedidos.Controllers
 
                 product.CreatedAt = DateTime.UtcNow;
                 _context.Add(product);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                
+                try
+                {
+                    await _context.SaveChangesAsync();
+                    TempData["Success"] = "Producto creado exitosamente.";
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (DbUpdateException)
+                {
+                    ModelState.AddModelError("", "Ha ocurrido un error al guardar el producto. Por favor, intente nuevamente.");
+                }
             }
             return View(product);
         }
@@ -115,6 +148,28 @@ namespace Aplicacion_Pedidos.Controllers
                 return NotFound();
             }
 
+            // Validación adicional para precio y stock
+            if (product.Price <= 0)
+            {
+                ModelState.AddModelError("Price", "El precio debe ser mayor que cero");
+            }
+            if (product.Stock < 0)
+            {
+                ModelState.AddModelError("Stock", "El stock no puede ser negativo");
+            }
+
+            // Validación de SKU único si se proporciona
+            if (!string.IsNullOrEmpty(product.SKU))
+            {
+                var existingSku = await _context.Products
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.SKU == product.SKU && p.Id != id);
+                if (existingSku != null)
+                {
+                    ModelState.AddModelError("SKU", "Este SKU ya está en uso");
+                }
+            }
+
             if (ModelState.IsValid)
             {
                 try
@@ -127,6 +182,14 @@ namespace Aplicacion_Pedidos.Controllers
 
                     if (product.ImageFile != null)
                     {
+                        // Validar el tipo de archivo usando el contenido real
+                        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif" };
+                        if (!allowedTypes.Contains(product.ImageFile.ContentType.ToLower()))
+                        {
+                            ModelState.AddModelError("ImageFile", "Solo se permiten archivos de imagen (JPEG, PNG, GIF)");
+                            return View(product);
+                        }
+
                         string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "products");
                         string uniqueFileName = Guid.NewGuid().ToString() + "_" + product.ImageFile.FileName;
                         string filePath = Path.Combine(uploadsFolder, uniqueFileName);
@@ -159,6 +222,8 @@ namespace Aplicacion_Pedidos.Controllers
                     product.UpdatedAt = DateTime.UtcNow;
                     _context.Update(product);
                     await _context.SaveChangesAsync();
+                    TempData["Success"] = "Producto actualizado exitosamente.";
+                    return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -168,10 +233,9 @@ namespace Aplicacion_Pedidos.Controllers
                     }
                     else
                     {
-                        throw;
+                        ModelState.AddModelError("", "Ha ocurrido un error al actualizar el producto. Por favor, intente nuevamente.");
                     }
                 }
-                return RedirectToAction(nameof(Index));
             }
             return View(product);
         }
