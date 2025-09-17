@@ -1,0 +1,54 @@
+@model Aplicacion_Pedidos.Models.User
+
+@{
+    ViewData["Title"] = "Detalles de Usuario";
+}
+
+<h1>Detalles de Usuario</h1>
+
+<div class="card">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Nombre</dt>
+            <dd class="col-sm-9">@Html.DisplayFor(model => model.Name)</dd>
+
+            <dt class="col-sm-3">Correo Electrónico</dt>
+            <dd class="col-sm-9">@Html.DisplayFor(model => model.Email)</dd>
+
+            <dt class="col-sm-3">Rol</dt>
+            <dd class="col-sm-9">@Html.DisplayFor(model => model.Role)</dd>
+
+            <dt class="col-sm-3">Teléfono</dt>
+            <dd class="col-sm-9">@Html.DisplayFor(model => model.PhoneNumber)</dd>
+
+            <dt class="col-sm-3">Dirección</dt>
+            <dd class="col-sm-9">@Html.DisplayFor(model => model.Address)</dd>
+
+            <dt class="col-sm-3">Estado</dt>
+            <dd class="col-sm-9">
+                @if (Model.IsActive)
+                {
+                    <span class="badge bg-success">Activo</span>
+                }
+                else
+                {
+                    <span class="badge bg-danger">Inactivo</span>
+                }
+            </dd>
+
+            <dt class="col-sm-3">Fecha de Creación</dt>
+            <dd class="col-sm-9">@Html.DisplayFor(model => model.CreatedAt)</dd>
+
+            <dt class="col-sm-3">Última Actualización</dt>
+            <dd class="col-sm-9">@Html.DisplayFor(model => model.UpdatedAt)</dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Editar
+        </a>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
