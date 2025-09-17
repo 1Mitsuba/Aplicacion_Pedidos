@@ -1,12 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using Aplicacion_Pedidos.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Add DbContext configuration
+// Configurar la autenticación por cookies
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Auth/Login";
+        options.LogoutPath = "/Auth/Logout";
+        options.AccessDeniedPath = "/Auth/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(12);
+    });
+
+// Configurar la base de datos
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -25,6 +36,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+// Agregar autenticación al pipeline
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(

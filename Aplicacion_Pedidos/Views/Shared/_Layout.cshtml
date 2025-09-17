@@ -6,52 +6,55 @@
     <title>@ViewData["Title"] - Sistema de Pedidos</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
 </head>
 <body>
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
             <div class="container">
-                <a class="navbar-brand" asp-controller="Home" asp-action="Index">
-                    <i class="bi bi-box-seam"></i> Sistema de Pedidos
-                </a>
+                <a class="navbar-brand" asp-controller="Home" asp-action="Index">Sistema de Pedidos</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="Index">
-                                <i class="bi bi-house"></i> Inicio
-                            </a>
+                            <a class="nav-link" asp-controller="Home" asp-action="Index">Inicio</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-box"></i> Productos
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-cart"></i> Pedidos
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-people"></i> Usuarios
-                            </a>
-                        </li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Users" asp-action="Index">Usuarios</a>
+                            </li>
+                        }
                     </ul>
                     <ul class="navbar-nav">
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-person-circle"></i> Mi Cuenta
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i> Configuración</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right"></i> Cerrar Sesión</a></li>
-                            </ul>
-                        </li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user"></i> @User.Identity.Name
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <h6 class="dropdown-header">Rol: @User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</h6>
+                                    <div class="dropdown-divider"></div>
+                                    <form asp-controller="Auth" asp-action="Logout" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                                        </button>
+                                    </form>
+                                </div>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Auth" asp-action="Login">
+                                    <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                                </a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>
@@ -64,24 +67,15 @@
         </main>
     </div>
 
-    <footer class="footer text-muted bg-dark">
+    <footer class="border-top footer text-muted">
         <div class="container">
-            <div class="row py-3">
-                <div class="col-md-6">
-                    &copy; 2024 - Sistema de Pedidos - <a asp-controller="Home" asp-action="Privacy">Privacidad</a>
-                </div>
-                <div class="col-md-6 text-end">
-                    <a asp-controller="Home" asp-action="About">Acerca de</a> |
-                    <a asp-controller="Home" asp-action="Contact">Contacto</a>
-                </div>
-            </div>
+            &copy; @DateTime.Now.Year - Sistema de Pedidos
         </div>
     </footer>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
