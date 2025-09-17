@@ -1,8 +1,77 @@
-@model IEnumerable<Aplicacion_Pedidos.Models.Product>
+@model Aplicacion_Pedidos.Models.ViewModels.ProductSearchViewModel
 
 @{
     ViewData["Title"] = "Productos";
 }
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" asp-action="Index" id="searchForm">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" asp-for="SearchTerm" 
+                                       placeholder="Buscar por nombre, descripción o SKU...">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text">Precio</span>
+                                <input type="number" class="form-control" asp-for="MinPrice" 
+                                       placeholder="Mínimo" step="0.01" min="0">
+                                <span class="input-group-text">-</span>
+                                <input type="number" class="form-control" asp-for="MaxPrice" 
+                                       placeholder="Máximo" step="0.01" min="0">
+                            </div>
+                        </div>
+
+                        <div class="col-md-2">
+                            <select class="form-select" asp-for="SortBy">
+                                <option value="">Ordenar por...</option>
+                                <option value="price_asc">Precio ?</option>
+                                <option value="price_desc">Precio ?</option>
+                                <option value="name_asc">Nombre A-Z</option>
+                                <option value="name_desc">Nombre Z-A</option>
+                                <option value="stock_asc">Stock ?</option>
+                                <option value="stock_desc">Stock ?</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mt-2">
+                        <div class="col-md-12">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" asp-for="InStock" id="inStock">
+                                <label class="form-check-label" for="inStock">Solo productos en stock</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="IsActive" value="" 
+                                       checked="@(!Model.IsActive.HasValue)" id="allStatus">
+                                <label class="form-check-label" for="allStatus">Todos</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="IsActive" value="true" 
+                                       checked="@(Model.IsActive == true)" id="activeOnly">
+                                <label class="form-check-label" for="activeOnly">Activos</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="IsActive" value="false" 
+                                       checked="@(Model.IsActive == false)" id="inactiveOnly">
+                                <label class="form-check-label" for="inactiveOnly">Inactivos</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1>Catálogo de Productos</h1>
@@ -15,57 +84,72 @@
 </div>
 
 <div class="row">
-    @foreach (var item in Model)
+    @if (Model.Products != null && Model.Products.Any())
     {
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                @if (!string.IsNullOrEmpty(item.ImageUrl))
-                {
-                    <img src="@item.ImageUrl" class="card-img-top" alt="@item.Name" style="height: 200px; object-fit: cover;">
-                }
-                else
-                {
-                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
-                        <i class="fas fa-image fa-3x text-muted"></i>
+        foreach (var item in Model.Products)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    @if (!string.IsNullOrEmpty(item.ImageUrl))
+                    {
+                        <img src="@item.ImageUrl" class="card-img-top" alt="@item.Name" style="height: 200px; object-fit: cover;">
+                    }
+                    else
+                    {
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <i class="fas fa-image fa-3x text-muted"></i>
+                        </div>
+                    }
+                    <div class="card-body">
+                        <h5 class="card-title">@item.Name</h5>
+                        <p class="card-text text-truncate">@item.Description</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">$@item.Price.ToString("N2")</h6>
+                            <span class="badge @(item.Stock > 0 ? "bg-success" : "bg-danger")">
+                                Stock: @item.Stock
+                            </span>
+                        </div>
                     </div>
-                }
-                <div class="card-body">
-                    <h5 class="card-title">@item.Name</h5>
-                    <p class="card-text text-truncate">@item.Description</p>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">$@item.Price.ToString("N2")</h6>
-                        <span class="badge @(item.Stock > 0 ? "bg-success" : "bg-danger")">
-                            Stock: @item.Stock
-                        </span>
+                    <div class="card-footer bg-transparent">
+                        <div class="btn-group w-100">
+                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary">
+                                <i class="fas fa-info-circle"></i>
+                            </a>
+                            @if (User.IsInRole("Admin") || User.IsInRole("Empleado"))
+                            {
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            }
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            }
+                        </div>
                     </div>
                 </div>
-                <div class="card-footer bg-transparent">
-                    <div class="btn-group w-100">
-                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary">
-                            <i class="fas fa-info-circle"></i>
-                        </a>
-                        @if (User.IsInRole("Admin") || User.IsInRole("Empleado"))
-                        {
-                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-warning">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                        }
-                        @if (User.IsInRole("Admin"))
-                        {
-                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger">
-                                <i class="fas fa-trash"></i>
-                            </a>
-                        }
-                    </div>
-                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No se encontraron productos que coincidan con los criterios de búsqueda.
             </div>
         </div>
     }
 </div>
 
-@if (!Model.Any())
-{
-    <div class="alert alert-info">
-        <i class="fas fa-info-circle"></i> No hay productos disponibles.
-    </div>
+@section Scripts {
+    <script>
+        // Actualizar formulario automáticamente al cambiar cualquier filtro
+        document.querySelectorAll('#searchForm input, #searchForm select').forEach(function (element) {
+            element.addEventListener('change', function () {
+                document.getElementById('searchForm').submit();
+            });
+        });
+    </script>
 }

@@ -24,9 +24,58 @@ namespace Aplicacion_Pedidos.Controllers
         }
 
         // GET: Products
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(ProductSearchViewModel searchModel)
         {
-            return View(await _context.Products.ToListAsync());
+            var query = _context.Products.AsQueryable();
+
+            // Aplicar filtros
+            if (!string.IsNullOrWhiteSpace(searchModel.SearchTerm))
+            {
+                query = query.Where(p => 
+                    p.Name.Contains(searchModel.SearchTerm) || 
+                    p.Description.Contains(searchModel.SearchTerm) ||
+                    (p.SKU != null && p.SKU.Contains(searchModel.SearchTerm)));
+            }
+
+            if (searchModel.MinPrice.HasValue)
+            {
+                query = query.Where(p => p.Price >= searchModel.MinPrice.Value);
+            }
+
+            if (searchModel.MaxPrice.HasValue)
+            {
+                query = query.Where(p => p.Price <= searchModel.MaxPrice.Value);
+            }
+
+            if (searchModel.IsActive.HasValue)
+            {
+                query = query.Where(p => p.IsActive == searchModel.IsActive.Value);
+            }
+
+            if (searchModel.InStock)
+            {
+                query = query.Where(p => p.Stock > 0);
+            }
+
+            // Aplicar ordenamiento
+            query = searchModel.SortBy?.ToLower() switch
+            {
+                "price_asc" => query.OrderBy(p => p.Price),
+                "price_desc" => query.OrderByDescending(p => p.Price),
+                "name_asc" => query.OrderBy(p => p.Name),
+                "name_desc" => query.OrderByDescending(p => p.Name),
+                "stock_asc" => query.OrderBy(p => p.Stock),
+                "stock_desc" => query.OrderByDescending(p => p.Stock),
+                _ => query.OrderByDescending(p => p.CreatedAt)
+            };
+
+            searchModel.Products = await query.ToListAsync();
+
+            // Obtener rangos de precios para los filtros
+            ViewBag.MinPrice = await _context.Products.MinAsync(p => p.Price);
+            ViewBag.MaxPrice = await _context.Products.MaxAsync(p => p.Price);
+
+            return View(searchModel);
         }
 
         // GET: Products/Details/5
