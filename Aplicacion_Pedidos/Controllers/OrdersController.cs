@@ -22,7 +22,7 @@ namespace Aplicacion_Pedidos.Controllers
         }
 
         // GET: Orders
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(OrderSearchViewModel searchModel)
         {
             var query = _context.Orders
                 .Include(o => o.User)
@@ -36,12 +36,80 @@ namespace Aplicacion_Pedidos.Controllers
                 var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
                 query = query.Where(o => o.UserId == userId);
             }
+            else
+            {
+                // Filtro por cliente (solo para admin y empleados)
+                if (searchModel.UserId.HasValue)
+                {
+                    query = query.Where(o => o.UserId == searchModel.UserId);
+                }
+            }
 
-            var orders = await query
-                .OrderByDescending(o => o.OrderDate)
-                .ToListAsync();
+            // Filtros
+            if (!string.IsNullOrWhiteSpace(searchModel.SearchTerm))
+            {
+                query = query.Where(o =>
+                    o.User.Name.Contains(searchModel.SearchTerm) ||
+                    o.OrderItems.Any(oi => oi.Product.Name.Contains(searchModel.SearchTerm) ||
+                                         oi.Product.SKU.Contains(searchModel.SearchTerm)) ||
+                    o.Notes.Contains(searchModel.SearchTerm) ||
+                    o.ShippingAddress.Contains(searchModel.SearchTerm));
+            }
 
-            return View(orders);
+            if (searchModel.Status.HasValue)
+            {
+                query = query.Where(o => o.Status == searchModel.Status.Value);
+            }
+
+            if (searchModel.StartDate.HasValue)
+            {
+                query = query.Where(o => o.OrderDate.Date >= searchModel.StartDate.Value.Date);
+            }
+
+            if (searchModel.EndDate.HasValue)
+            {
+                query = query.Where(o => o.OrderDate.Date <= searchModel.EndDate.Value.Date);
+            }
+
+            if (searchModel.MinTotal.HasValue)
+            {
+                query = query.Where(o => o.Total >= searchModel.MinTotal.Value);
+            }
+
+            if (searchModel.MaxTotal.HasValue)
+            {
+                query = query.Where(o => o.Total <= searchModel.MaxTotal.Value);
+            }
+
+            // Ordenamiento
+            query = searchModel.SortBy?.ToLower() switch
+            {
+                "date_asc" => query.OrderBy(o => o.OrderDate),
+                "date_desc" => query.OrderByDescending(o => o.OrderDate),
+                "total_asc" => query.OrderBy(o => o.Total),
+                "total_desc" => query.OrderByDescending(o => o.Total),
+                "status_asc" => query.OrderBy(o => o.Status),
+                "status_desc" => query.OrderByDescending(o => o.Status),
+                "customer_asc" => query.OrderBy(o => o.User.Name),
+                "customer_desc" => query.OrderByDescending(o => o.User.Name),
+                _ => query.OrderByDescending(o => o.OrderDate)
+            };
+
+            searchModel.Orders = await query.ToListAsync();
+
+            // Preparar datos para filtros
+            if (!User.IsInRole(UserRole.Cliente.ToString()))
+            {
+                ViewBag.Users = await _context.Users
+                    .Where(u => u.IsActive)
+                    .OrderBy(u => u.Name)
+                    .ToListAsync();
+            }
+
+            ViewBag.MinTotal = await _context.Orders.MinAsync(o => o.Total);
+            ViewBag.MaxTotal = await _context.Orders.MaxAsync(o => o.Total);
+
+            return View(searchModel);
         }
 
         // GET: Orders/Details/5
