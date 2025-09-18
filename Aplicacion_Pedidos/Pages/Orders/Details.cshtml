@@ -1,7 +1,7 @@
-@using Aplicacion_Pedidos.Models
+@page "{id:int}"
+@model Aplicacion_Pedidos.Pages.Orders.DetailsModel
 @using Aplicacion_Pedidos.Models.Enums
 @using System.Globalization
-@model Order
 
 @{
     ViewData["Title"] = "Detalles del Pedido";
@@ -11,22 +11,22 @@
 <div class="card mb-4">
     <div class="card-header">
         <div class="d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Pedido #@Model.Id</h4>
+            <h4 class="mb-0">Pedido #@Model.Order.Id</h4>
             @if (User.IsInRole(UserRole.Admin.ToString()) || User.IsInRole(UserRole.Empleado.ToString()))
             {
                 <div class="dropdown">
-                    <button class="btn @Model.StatusClass dropdown-toggle" type="button" id="statusDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        @Model.StatusText
+                    <button class="btn @Model.Order.StatusClass dropdown-toggle" type="button" id="statusDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        @Model.Order.StatusText
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="statusDropdown">
                         @foreach (OrderStatus status in Enum.GetValues<OrderStatus>())
                         {
-                            @if (status != Model.Status && IsValidStatusTransition(Model.Status, status))
+                            @if (status != Model.Order.Status && Model.IsValidStatusTransition(Model.Order.Status, status))
                             {
                                 <li>
-                                    <form asp-action="ChangeStatus" method="post" class="d-inline">
+                                    <form method="post" asp-page-handler="ChangeStatus" class="d-inline">
                                         @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@Model.Id" />
+                                        <input type="hidden" name="id" value="@Model.Order.Id" />
                                         <input type="hidden" name="newStatus" value="@((int)status)" />
                                         <button type="submit" class="dropdown-item" onclick="return confirm('¿Está seguro de cambiar el estado del pedido a @status?');">
                                             Cambiar a @status
@@ -40,7 +40,7 @@
             }
             else
             {
-                <span class="badge @Model.StatusClass">@Model.StatusText</span>
+                <span class="badge @Model.Order.StatusClass">@Model.Order.StatusText</span>
             }
         </div>
     </div>
@@ -50,15 +50,15 @@
                 <h5>Información del Cliente</h5>
                 <dl class="row">
                     <dt class="col-sm-4">Nombre</dt>
-                    <dd class="col-sm-8">@Model.User?.Name</dd>
+                    <dd class="col-sm-8">@Model.Order.User?.Name</dd>
 
                     <dt class="col-sm-4">Email</dt>
-                    <dd class="col-sm-8">@Model.User?.Email</dd>
+                    <dd class="col-sm-8">@Model.Order.User?.Email</dd>
 
-                    @if (!string.IsNullOrEmpty(Model.ShippingAddress))
+                    @if (!string.IsNullOrEmpty(Model.Order.ShippingAddress))
                     {
                         <dt class="col-sm-4">Dirección de Envío</dt>
-                        <dd class="col-sm-8">@Model.ShippingAddress</dd>
+                        <dd class="col-sm-8">@Model.Order.ShippingAddress</dd>
                     }
                 </dl>
             </div>
@@ -66,28 +66,28 @@
                 <h5>Información del Pedido</h5>
                 <dl class="row">
                     <dt class="col-sm-4">Fecha</dt>
-                    <dd class="col-sm-8">@Model.OrderDate.ToString("dd/MM/yyyy HH:mm", culture)</dd>
+                    <dd class="col-sm-8">@Model.Order.OrderDate.ToString("dd/MM/yyyy HH:mm", culture)</dd>
 
                     <dt class="col-sm-4">Creado</dt>
-                    <dd class="col-sm-8">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm", culture)</dd>
+                    <dd class="col-sm-8">@Model.Order.CreatedAt.ToString("dd/MM/yyyy HH:mm", culture)</dd>
 
-                    @if (Model.UpdatedAt.HasValue)
+                    @if (Model.Order.UpdatedAt.HasValue)
                     {
                         <dt class="col-sm-4">Última Actualización</dt>
-                        <dd class="col-sm-8">@Model.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm", culture)</dd>
+                        <dd class="col-sm-8">@Model.Order.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm", culture)</dd>
                     }
 
                     <dt class="col-sm-4">Total</dt>
-                    <dd class="col-sm-8">@Model.Total.ToString("C2", culture)</dd>
+                    <dd class="col-sm-8">@Model.Order.Total.ToString("C2", culture)</dd>
                 </dl>
             </div>
         </div>
 
-        @if (!string.IsNullOrEmpty(Model.Notes))
+        @if (!string.IsNullOrEmpty(Model.Order.Notes))
         {
             <div class="alert alert-info">
                 <h6>Notas:</h6>
-                <p class="mb-0">@Model.Notes</p>
+                <p class="mb-0">@Model.Order.Notes</p>
             </div>
         }
     </div>
@@ -110,7 +110,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var item in Model.OrderItems)
+                    @foreach (var item in Model.Order.OrderItems)
                     {
                         <tr>
                             <td>@item.Product?.Name</td>
@@ -124,7 +124,7 @@
                 <tfoot>
                     <tr>
                         <td colspan="4" class="text-end"><strong>Total:</strong></td>
-                        <td><strong>@Model.Total.ToString("C2", culture)</strong></td>
+                        <td><strong>@Model.Order.Total.ToString("C2", culture)</strong></td>
                     </tr>
                 </tfoot>
             </table>
@@ -135,37 +135,11 @@
 <div class="mt-3">
     @if (User.IsInRole(UserRole.Admin.ToString()) || User.IsInRole(UserRole.Empleado.ToString()))
     {
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+        <a asp-page="./Edit" asp-route-id="@Model.Order.Id" class="btn btn-warning">
             <i class="fas fa-edit"></i> Editar
         </a>
     }
-    <a asp-action="Index" class="btn btn-secondary">
+    <a asp-page="./Index" class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i> Volver
     </a>
 </div>
-
-@functions {
-    private bool IsValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus)
-    {
-        return (currentStatus, newStatus) switch
-        {
-            // Transiciones válidas desde Pendiente
-            (OrderStatus.Pendiente, OrderStatus.Procesando) => true,
-            (OrderStatus.Pendiente, OrderStatus.Cancelado) => true,
-
-            // Transiciones válidas desde Procesando
-            (OrderStatus.Procesando, OrderStatus.Enviado) => true,
-            (OrderStatus.Procesando, OrderStatus.Cancelado) => true,
-
-            // Transiciones válidas desde Enviado
-            (OrderStatus.Enviado, OrderStatus.Entregado) => true,
-            (OrderStatus.Enviado, OrderStatus.Cancelado) => true,
-
-            // Transiciones válidas desde Entregado (solo a cancelado)
-            (OrderStatus.Entregado, OrderStatus.Cancelado) => true,
-
-            // Cualquier otra transición no es válida
-            _ => false
-        };
-    }
-}
