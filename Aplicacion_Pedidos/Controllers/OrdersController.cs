@@ -103,55 +103,75 @@ namespace Aplicacion_Pedidos.Controllers
         [AuthorizeRoles(UserRole.Admin, UserRole.Empleado)]
         public async Task<IActionResult> Create([Bind("UserId,OrderDate,Status,Notes,ShippingAddress")] Order order, List<OrderItem> items)
         {
-            if (ModelState.IsValid && items?.Any() == true)
+            if (!ModelState.IsValid || items?.Any() != true)
             {
-                try
-                {
-                    order.CreatedAt = DateTime.UtcNow;
-                    order.Total = 0;
-
-                    foreach (var item in items)
-                    {
-                        var product = await _context.Products.FindAsync(item.ProductId);
-                        if (product == null || item.Quantity <= 0 || item.Quantity > product.Stock)
-                        {
-                            ModelState.AddModelError("", "Producto no válido o cantidad insuficiente");
-                            return View(order);
-                        }
-
-                        item.UnitPrice = product.Price;
-                        item.CalculateSubtotal();
-                        order.Total += item.Subtotal;
-                        
-                        // Actualizar stock
-                        product.Stock -= item.Quantity;
-                        _context.Update(product);
-                    }
-
-                    order.OrderItems = items;
-                    _context.Add(order);
-                    await _context.SaveChangesAsync();
-
-                    TempData["Success"] = "Pedido creado exitosamente.";
-                    return RedirectToAction(nameof(Index));
-                }
-                catch (Exception)
-                {
-                    ModelState.AddModelError("", "Ha ocurrido un error al crear el pedido.");
-                }
+                ModelState.AddModelError("", "Debe agregar al menos un producto al pedido.");
+                await PrepareViewBagForCreate();
+                return View(order);
             }
 
-            ViewBag.Users = await _context.Users
-                .Where(u => u.IsActive)
-                .OrderBy(u => u.Name)
-                .ToListAsync();
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Verificar y actualizar stock en una sola operación
+                var productIds = items.Select(i => i.ProductId).Distinct().ToList();
+                var products = await _context.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id);
 
-            ViewBag.Products = await _context.Products
-                .Where(p => p.IsActive && p.Stock > 0)
-                .OrderBy(p => p.Name)
-                .ToListAsync();
+                // Validar productos y stock
+                foreach (var item in items)
+                {
+                    if (!products.TryGetValue(item.ProductId, out var product))
+                    {
+                        ModelState.AddModelError("", $"Producto no encontrado (ID: {item.ProductId})");
+                        return View(order);
+                    }
 
-            return View(order);
+                    if (!product.IsActive)
+                    {
+                        ModelState.AddModelError("", $"El producto {product.Name} no está activo");
+                        return View(order);
+                    }
+
+                    if (item.Quantity <= 0)
+                    {
+                        ModelState.AddModelError("", $"La cantidad debe ser mayor que 0 para {product.Name}");
+                        return View(order);
+                    }
+
+                    if (item.Quantity > product.Stock)
+                    {
+                        ModelState.AddModelError("", $"Stock insuficiente para {product.Name}. Disponible: {product.Stock}");
+                        return View(order);
+                    }
+
+                    // Configurar item y actualizar stock
+                    item.UnitPrice = product.Price;
+                    item.CalculateSubtotal();
+                    product.Stock -= item.Quantity;
+                    _context.Update(product);
+                }
+
+                // Calcular total del pedido
+                order.Total = items.Sum(i => i.Subtotal);
+                order.CreatedAt = DateTime.UtcNow;
+                order.OrderItems = items;
+
+                _context.Add(order);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                TempData["Success"] = "Pedido creado exitosamente.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                ModelState.AddModelError("", "Ha ocurrido un error al crear el pedido. " + ex.Message);
+                await PrepareViewBagForCreate();
+                return View(order);
+            }
         }
 
         // GET: Orders/Edit/5
@@ -190,54 +210,67 @@ namespace Aplicacion_Pedidos.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [AuthorizeRoles(UserRole.Admin, UserRole.Empleado)]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,UserId,OrderDate,Status,Notes,ShippingAddress")] Order order)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,UserId,OrderDate,Status,Notes,ShippingAddress")] Order order, List<OrderItem> items)
         {
             if (id != order.Id)
             {
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    var existingOrder = await _context.Orders
-                        .Include(o => o.OrderItems)
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(o => o.Id == id);
-
-                    if (existingOrder == null)
-                    {
-                        return NotFound();
-                    }
-
-                    order.Total = existingOrder.Total;
-                    order.UpdatedAt = DateTime.UtcNow;
-                    _context.Update(order);
-                    await _context.SaveChangesAsync();
-
-                    TempData["Success"] = "Pedido actualizado exitosamente.";
-                    return RedirectToAction(nameof(Index));
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!OrderExists(order.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        ModelState.AddModelError("", "Ha ocurrido un error al actualizar el pedido.");
-                    }
-                }
+                await PrepareViewBagForEdit();
+                return View(order);
             }
 
-            ViewBag.Users = await _context.Users
-                .Where(u => u.IsActive)
-                .OrderBy(u => u.Name)
-                .ToListAsync();
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var existingOrder = await _context.Orders
+                    .Include(o => o.OrderItems)
+                    .FirstOrDefaultAsync(o => o.Id == id);
 
-            return View(order);
+                if (existingOrder == null)
+                {
+                    return NotFound();
+                }
+
+                // Si el pedido está cancelado o entregado, no permitir cambios
+                if (existingOrder.Status == OrderStatus.Cancelado || existingOrder.Status == OrderStatus.Entregado)
+                {
+                    ModelState.AddModelError("", "No se pueden modificar pedidos cancelados o entregados");
+                    await PrepareViewBagForEdit();
+                    return View(order);
+                }
+
+                // Actualizar campos básicos
+                existingOrder.UserId = order.UserId;
+                existingOrder.OrderDate = order.OrderDate;
+                existingOrder.Status = order.Status;
+                existingOrder.Notes = order.Notes;
+                existingOrder.ShippingAddress = order.ShippingAddress;
+                existingOrder.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                TempData["Success"] = "Pedido actualizado exitosamente.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await transaction.RollbackAsync();
+                if (!OrderExists(order.Id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    ModelState.AddModelError("", "Ha ocurrido un error al actualizar el pedido.");
+                    await PrepareViewBagForEdit();
+                    return View(order);
+                }
+            }
         }
 
         // GET: Orders/Delete/5
@@ -313,4 +346,31 @@ namespace Aplicacion_Pedidos.Controllers
 
             return View("Index", orders);
         }
-    }}
+
+        private async Task PrepareViewBagForCreate()
+        {
+            ViewBag.Users = await _context.Users
+                .Where(u => u.IsActive)
+                .OrderBy(u => u.Name)
+                .ToListAsync();
+
+            ViewBag.Products = await _context.Products
+                .Where(p => p.IsActive && p.Stock > 0)
+                .OrderBy(p => p.Name)
+                .ToListAsync();
+        }
+
+        private async Task PrepareViewBagForEdit()
+        {
+            ViewBag.Users = await _context.Users
+                .Where(u => u.IsActive)
+                .OrderBy(u => u.Name)
+                .ToListAsync();
+
+            ViewBag.Products = await _context.Products
+                .Where(p => p.IsActive)
+                .OrderBy(p => p.Name)
+                .ToListAsync();
+        }
+    }
+}
