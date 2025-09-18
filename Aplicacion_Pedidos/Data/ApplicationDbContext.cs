@@ -47,25 +47,28 @@ namespace Aplicacion_Pedidos.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Configuración de OrderItems
-            modelBuilder.Entity<OrderItem>()
-                .Property(oi => oi.UnitPrice)
-                .HasPrecision(18, 2);
+            modelBuilder.Entity<OrderItem>(entity =>
+            {
+                entity.Property(oi => oi.UnitPrice)
+                    .HasPrecision(18, 2);
 
-            modelBuilder.Entity<OrderItem>()
-                .Property(oi => oi.Subtotal)
-                .HasPrecision(18, 2);
+                entity.Property(oi => oi.Subtotal)
+                    .HasPrecision(18, 2);
 
-            modelBuilder.Entity<OrderItem>()
-                .HasOne(oi => oi.Order)
-                .WithMany(o => o.OrderItems)
-                .HasForeignKey(oi => oi.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(oi => oi.Order)
+                    .WithMany(o => o.OrderItems)
+                    .HasForeignKey(oi => oi.OrderId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<OrderItem>()
-                .HasOne(oi => oi.Product)
-                .WithMany()
-                .HasForeignKey(oi => oi.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(oi => oi.Product)
+                    .WithMany()
+                    .HasForeignKey(oi => oi.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Índice compuesto para evitar duplicados de producto en un mismo pedido
+                entity.HasIndex(oi => new { oi.OrderId, oi.ProductId })
+                    .IsUnique();
+            });
 
             // Aplicar configuraciones adicionales
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
