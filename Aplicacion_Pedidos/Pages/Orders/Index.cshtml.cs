@@ -6,6 +6,7 @@ using Aplicacion_Pedidos.Models;
 using Aplicacion_Pedidos.Models.ViewModels;
 using Aplicacion_Pedidos.Models.Enums;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
 
 namespace Aplicacion_Pedidos.Pages.Orders
 {
@@ -13,10 +14,12 @@ namespace Aplicacion_Pedidos.Pages.Orders
     public class IndexModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public IndexModel(ApplicationDbContext context)
+        public IndexModel(ApplicationDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         [BindProperty(SupportsGet = true)]
@@ -25,6 +28,9 @@ namespace Aplicacion_Pedidos.Pages.Orders
 
         public async Task<IActionResult> OnGetAsync()
         {
+            // Configurar tamaño de página desde configuración
+            SearchModel.PageSize = _configuration.GetValue("PageSize", 10);
+
             var query = _context.Orders
                 .Include(o => o.User)
                 .Include(o => o.OrderItems)
@@ -89,20 +95,22 @@ namespace Aplicacion_Pedidos.Pages.Orders
             }
 
             // Ordenamiento
-            query = SearchModel.SortBy?.ToLower() switch
+            var direction = SearchModel.SortDirection?.ToLower() == "desc" ? "desc" : "asc";
+            query = (SearchModel.SortBy?.ToLower(), direction) switch
             {
-                "date_asc" => query.OrderBy(o => o.OrderDate),
-                "date_desc" => query.OrderByDescending(o => o.OrderDate),
-                "total_asc" => query.OrderBy(o => o.Total),
-                "total_desc" => query.OrderByDescending(o => o.Total),
-                "status_asc" => query.OrderBy(o => o.Status),
-                "status_desc" => query.OrderByDescending(o => o.Status),
-                "customer_asc" => query.OrderBy(o => o.User.Name),
-                "customer_desc" => query.OrderByDescending(o => o.User.Name),
+                ("date", "asc") => query.OrderBy(o => o.OrderDate),
+                ("date", "desc") => query.OrderByDescending(o => o.OrderDate),
+                ("total", "asc") => query.OrderBy(o => o.Total),
+                ("total", "desc") => query.OrderByDescending(o => o.Total),
+                ("status", "asc") => query.OrderBy(o => o.Status),
+                ("status", "desc") => query.OrderByDescending(o => o.Status),
+                ("customer", "asc") => query.OrderBy(o => o.User.Name),
+                ("customer", "desc") => query.OrderByDescending(o => o.User.Name),
                 _ => query.OrderByDescending(o => o.OrderDate)
             };
 
-            SearchModel.Orders = await query.ToListAsync();
+            SearchModel.Orders = await PaginatedList<Order>.CreateAsync(
+                query, SearchModel.PageIndex, SearchModel.PageSize);
 
             return Page();
         }
