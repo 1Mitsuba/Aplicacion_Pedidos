@@ -1,0 +1,248 @@
+@model Aplicacion_Pedidos.Models.ViewModels.OrderStatisticsViewModel
+
+@{
+    ViewData["Title"] = "Estadísticas de Pedidos";
+}
+
+<div class="row">
+    <div class="col-12 mb-4">
+        <h1 class="display-4">@ViewData["Title"]</h1>
+    </div>
+</div>
+
+<!-- Resumen General -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-shopping-cart"></i> Total Pedidos
+                </h5>
+                <h2 class="display-4">@Model.TotalOrders</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-dollar-sign"></i> Ingresos Totales
+                </h5>
+                <h2 class="display-4">$@Model.TotalRevenue.ToString("N0")</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-box"></i> Total Productos
+                </h5>
+                <h2 class="display-4">@Model.TotalProducts</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-users"></i> Total Clientes
+                </h5>
+                <h2 class="display-4">@Model.TotalCustomers</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estado de Pedidos -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Estado de Pedidos</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Pendientes</span>
+                            <span class="badge bg-warning">@Model.PendingOrders</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-warning" role="progressbar" 
+                                 style="width: @(Model.TotalOrders > 0 ? (Model.PendingOrders * 100.0 / Model.TotalOrders).ToString("N0") : "0")%">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Procesando</span>
+                            <span class="badge bg-info">@Model.ProcessingOrders</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-info" role="progressbar" 
+                                 style="width: @(Model.TotalOrders > 0 ? (Model.ProcessingOrders * 100.0 / Model.TotalOrders).ToString("N0") : "0")%">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Enviados</span>
+                            <span class="badge bg-primary">@Model.ShippedOrders</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-primary" role="progressbar" 
+                                 style="width: @(Model.TotalOrders > 0 ? (Model.ShippedOrders * 100.0 / Model.TotalOrders).ToString("N0") : "0")%">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Entregados</span>
+                            <span class="badge bg-success">@Model.DeliveredOrders</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: @(Model.TotalOrders > 0 ? (Model.DeliveredOrders * 100.0 / Model.TotalOrders).ToString("N0") : "0")%">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Cancelados</span>
+                            <span class="badge bg-danger">@Model.CanceledOrders</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-danger" role="progressbar" 
+                                 style="width: @(Model.TotalOrders > 0 ? (Model.CanceledOrders * 100.0 / Model.TotalOrders).ToString("N0") : "0")%">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Métricas de Ventas -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Métricas de Ventas</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Promedio por Pedido</h6>
+                        <p class="h4">$@Model.AverageOrderValue.ToString("N2")</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Total Items Vendidos</h6>
+                        <p class="h4">@Model.TotalItemsSold</p>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Pedido más Alto</h6>
+                        <p class="h4">$@Model.HighestOrderValue.ToString("N2")</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Pedido más Bajo</h6>
+                        <p class="h4">$@Model.LowestOrderValue.ToString("N2")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calendar"></i> Ingresos por Período</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6>Hoy</h6>
+                        <p class="h4">$@Model.RevenueToday.ToString("N2")</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Esta Semana</h6>
+                        <p class="h4">$@Model.RevenueThisWeek.ToString("N2")</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Este Mes</h6>
+                        <p class="h4">$@Model.RevenueThisMonth.ToString("N2")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top 5 -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-crown"></i> Top 5 Productos</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>SKU</th>
+                                <th class="text-end">Cantidad</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var product in Model.TopProducts)
+                            {
+                                <tr>
+                                    <td>@product.ProductName</td>
+                                    <td>@product.SKU</td>
+                                    <td class="text-end">@product.QuantitySold</td>
+                                    <td class="text-end">$@product.TotalRevenue.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-star"></i> Top 5 Clientes</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th class="text-end">Pedidos</th>
+                                <th class="text-end">Total Gastado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var customer in Model.TopCustomers)
+                            {
+                                <tr>
+                                    <td>@customer.CustomerName</td>
+                                    <td class="text-end">@customer.OrderCount</td>
+                                    <td class="text-end">$@customer.TotalSpent.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
