@@ -1,0 +1,118 @@
+@model Aplicacion_Pedidos.Models.Order
+
+@{
+    ViewData["Title"] = "Eliminar Pedido";
+}
+
+<div class="card">
+    <div class="card-header bg-danger text-white">
+        <h4 class="mb-0">
+            <i class="fas fa-exclamation-triangle"></i> 
+            ¿Está seguro que desea eliminar este pedido?
+        </h4>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h5>Información del Pedido</h5>
+                <dl class="row">
+                    <dt class="col-sm-4">N° Pedido</dt>
+                    <dd class="col-sm-8">#@Model.Id</dd>
+
+                    <dt class="col-sm-4">Cliente</dt>
+                    <dd class="col-sm-8">@Model.User?.Name</dd>
+
+                    <dt class="col-sm-4">Fecha</dt>
+                    <dd class="col-sm-8">@Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</dd>
+
+                    <dt class="col-sm-4">Estado</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge @Model.StatusClass">@Model.StatusText</span>
+                    </dd>
+
+                    <dt class="col-sm-4">Total</dt>
+                    <dd class="col-sm-8">$@Model.Total.ToString("N2")</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <h5>Detalles de Envío</h5>
+                <dl class="row">
+                    @if (!string.IsNullOrEmpty(Model.ShippingAddress))
+                    {
+                        <dt class="col-sm-4">Dirección</dt>
+                        <dd class="col-sm-8">@Model.ShippingAddress</dd>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Notes))
+                    {
+                        <dt class="col-sm-4">Notas</dt>
+                        <dd class="col-sm-8">@Model.Notes</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+
+        <div class="alert alert-warning">
+            <h5><i class="fas fa-exclamation-circle"></i> Importante</h5>
+            <ul class="mb-0">
+                <li>Esta acción no se puede deshacer.</li>
+                <li>Se restaurará el stock de los productos.</li>
+                <li>Se perderá todo el historial relacionado con este pedido.</li>
+            </ul>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Producto</th>
+                        <th>SKU</th>
+                        <th class="text-center">Cantidad</th>
+                        <th class="text-end">Precio Unit.</th>
+                        <th class="text-end">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.OrderItems)
+                    {
+                        <tr>
+                            <td>@item.Product?.Name</td>
+                            <td>@item.Product?.SKU</td>
+                            <td class="text-center">@item.Quantity</td>
+                            <td class="text-end">$@item.UnitPrice.ToString("N2")</td>
+                            <td class="text-end">$@item.Subtotal.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-end"><strong>Total:</strong></td>
+                        <td class="text-end"><strong>$@Model.Total.ToString("N2")</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <form asp-action="Delete" class="mt-4">
+            <input type="hidden" asp-for="Id" />
+            <div class="d-flex justify-content-between">
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Confirmar Eliminación
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Confirmar eliminación
+        document.querySelector('form').onsubmit = function(e) {
+            if (!confirm('¿Está seguro que desea eliminar este pedido? Esta acción no se puede deshacer.')) {
+                e.preventDefault();
+            }
+        };
+    </script>
+}
