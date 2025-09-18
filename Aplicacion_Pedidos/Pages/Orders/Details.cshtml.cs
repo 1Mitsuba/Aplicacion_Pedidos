@@ -5,7 +5,9 @@ using Aplicacion_Pedidos.Data;
 using Aplicacion_Pedidos.Models;
 using Aplicacion_Pedidos.Models.Enums;
 using Aplicacion_Pedidos.Services.Notifications;
+using Aplicacion_Pedidos.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
 
 namespace Aplicacion_Pedidos.Pages.Orders
 {
@@ -14,15 +16,22 @@ namespace Aplicacion_Pedidos.Pages.Orders
     {
         private readonly ApplicationDbContext _context;
         private readonly INotificationService _notificationService;
+        private readonly IConfiguration _configuration;
 
-        public DetailsModel(ApplicationDbContext context, INotificationService notificationService)
+        public DetailsModel(ApplicationDbContext context, INotificationService notificationService, IConfiguration configuration)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         [BindProperty]
         public Order Order { get; set; } = default!;
+
+        public PaginatedList<Order>? RelatedOrders { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public int PageIndex { get; set; } = 1;
 
         public async Task<IActionResult> OnGetAsync(int? id)
         {
@@ -68,6 +77,18 @@ namespace Aplicacion_Pedidos.Pages.Orders
             }
 
             Order = order;
+
+            // Cargar pedidos relacionados del mismo cliente
+            var relatedOrdersQuery = _context.Orders
+                .Include(o => o.OrderItems)
+                .Where(o => o.UserId == order.UserId && o.Id != order.Id)
+                .OrderByDescending(o => o.OrderDate);
+
+            RelatedOrders = await PaginatedList<Order>.CreateAsync(
+                relatedOrdersQuery, 
+                PageIndex, 
+                _configuration.GetValue("RelatedOrdersPageSize", 5));
+
             return Page();
         }
 

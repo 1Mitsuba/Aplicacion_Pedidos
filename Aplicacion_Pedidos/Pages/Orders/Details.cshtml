@@ -20,7 +20,7 @@
                         @Model.Order.StatusText
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="statusDropdown">
-                        @foreach (OrderStatus status in Enum.GetValues<OrderStatus>())
+                        @foreach (var status in Enum.GetValues<OrderStatus>())
                         {
                             @if (status != Model.Order.Status && Model.IsValidStatusTransition(Model.Order.Status, status))
                             {
@@ -30,7 +30,7 @@
                                         <input type="hidden" name="id" value="@Model.Order.Id" />
                                         <input type="hidden" name="newStatus" value="@((int)status)" />
                                         <button type="submit" class="dropdown-item" onclick="return confirm('¿Está seguro de cambiar el estado del pedido a @status?');">
-                                            Cambiar a @status
+                                            <i class="fas fa-exchange-alt me-2"></i>Cambiar a @status
                                         </button>
                                     </form>
                                 </li>
@@ -48,7 +48,7 @@
     <div class="card-body">
         <div class="row">
             <div class="col-md-6">
-                <h5>Información del Cliente</h5>
+                <h5><i class="fas fa-user me-2"></i>Información del Cliente</h5>
                 <dl class="row">
                     <dt class="col-sm-4">Nombre</dt>
                     <dd class="col-sm-8">@Model.Order.User?.Name</dd>
@@ -64,7 +64,7 @@
                 </dl>
             </div>
             <div class="col-md-6">
-                <h5>Información del Pedido</h5>
+                <h5><i class="fas fa-info-circle me-2"></i>Información del Pedido</h5>
                 <dl class="row">
                     <dt class="col-sm-4">Fecha</dt>
                     <dd class="col-sm-8">@Model.Order.OrderDate.ToString("dd/MM/yyyy HH:mm", culture)</dd>
@@ -87,7 +87,7 @@
         @if (!string.IsNullOrEmpty(Model.Order.Notes))
         {
             <div class="alert alert-info">
-                <h6>Notas:</h6>
+                <h6><i class="fas fa-sticky-note me-2"></i>Notas:</h6>
                 <p class="mb-0">@Model.Order.Notes</p>
             </div>
         }
@@ -96,18 +96,18 @@
 
 <div class="card">
     <div class="card-header">
-        <h5 class="mb-0">Productos del Pedido</h5>
+        <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Productos del Pedido</h5>
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
                     <tr>
-                        <th>Producto</th>
-                        <th>SKU</th>
-                        <th>Cantidad</th>
-                        <th>Precio Unit.</th>
-                        <th>Subtotal</th>
+                        <th><i class="fas fa-box me-2"></i>Producto</th>
+                        <th><i class="fas fa-barcode me-2"></i>SKU</th>
+                        <th><i class="fas fa-hashtag me-2"></i>Cantidad</th>
+                        <th><i class="fas fa-tag me-2"></i>Precio Unit.</th>
+                        <th><i class="fas fa-calculator me-2"></i>Subtotal</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -133,6 +133,93 @@
     </div>
 </div>
 
+<div class="mt-4">
+    @if (Model.RelatedOrders?.Items.Any() == true)
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Otros Pedidos del Cliente
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Total</th>
+                                <th>Items</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var relatedOrder in Model.RelatedOrders.Items)
+                            {
+                                <tr>
+                                    <td>@relatedOrder.Id</td>
+                                    <td>@relatedOrder.OrderDate.ToString("dd/MM/yyyy HH:mm", culture)</td>
+                                    <td>
+                                        <span class="badge @relatedOrder.StatusClass">@relatedOrder.StatusText</span>
+                                    </td>
+                                    <td>@relatedOrder.Total.ToString("C2", culture)</td>
+                                    <td>@relatedOrder.OrderItems.Count</td>
+                                    <td>
+                                        <a asp-page="./Details" asp-route-id="@relatedOrder.Id" 
+                                           class="btn btn-sm btn-info" title="Ver detalles">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (Model.RelatedOrders.TotalPages > 1)
+                {
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <small class="text-muted">
+                            Mostrando @((Model.PageIndex - 1) * Model.RelatedOrders.Items.Count + 1) a 
+                            @(Math.Min(Model.PageIndex * Model.RelatedOrders.Items.Count, Model.RelatedOrders.TotalItems)) 
+                            de @Model.RelatedOrders.TotalItems pedidos
+                        </small>
+                        <nav aria-label="Navegación de pedidos relacionados">
+                            <ul class="pagination pagination-sm mb-0">
+                                @{
+                                    var prevDisabled = !Model.RelatedOrders.HasPreviousPage ? "disabled" : "";
+                                    var nextDisabled = !Model.RelatedOrders.HasNextPage ? "disabled" : "";
+                                }
+                                <li class="page-item @prevDisabled">
+                                    <a class="page-link" asp-page="./Details" asp-route-id="@Model.Order.Id" 
+                                       asp-route-pageIndex="@(Model.PageIndex - 1)">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                                @for (var i = 1; i <= Model.RelatedOrders.TotalPages; i++)
+                                {
+                                    <li class="page-item @(i == Model.PageIndex ? "active" : "")">
+                                        <a class="page-link" asp-page="./Details" asp-route-id="@Model.Order.Id" 
+                                           asp-route-pageIndex="@i">@i</a>
+                                    </li>
+                                }
+                                <li class="page-item @nextDisabled">
+                                    <a class="page-link" asp-page="./Details" asp-route-id="@Model.Order.Id" 
+                                       asp-route-pageIndex="@(Model.PageIndex + 1)">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
 <div class="mt-3">
     @if (User.IsInRole(UserRole.Admin.ToString()) || User.IsInRole(UserRole.Empleado.ToString()))
     {
@@ -144,3 +231,18 @@
         <i class="fas fa-arrow-left"></i> Volver
     </a>
 </div>
+
+@section Scripts {
+    <script>
+        // Mostrar tooltips de Bootstrap
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        // Función para confirmar cambios de estado
+        function confirmStatusChange(status) {
+            return confirm(`¿Está seguro de cambiar el estado del pedido a ${status}?`);
+        }
+    </script>
+}
