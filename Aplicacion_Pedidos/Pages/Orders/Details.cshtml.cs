@@ -181,7 +181,7 @@ namespace Aplicacion_Pedidos.Pages.Orders
             }
         }
 
-        private static bool IsValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus)
+        public bool IsValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus)
         {
             return (currentStatus, newStatus) switch
             {

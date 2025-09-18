@@ -10,7 +10,45 @@
 </head>
 <body>
     <header>
-        <!-- ... código del header ... -->
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
+            <div class="container">
+                <a class="navbar-brand" asp-page="/Index">Sistema de Pedidos</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Orders/Index">
+                                <i class="fas fa-shopping-cart"></i> Pedidos
+                            </a>
+                        </li>
+                        @if (User.IsInRole("Admin") || User.IsInRole("Empleado"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Products/Index">
+                                    <i class="fas fa-box"></i> Productos
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Orders/Statistics">
+                                    <i class="fas fa-chart-bar"></i> Estadísticas
+                                </a>
+                            </li>
+                        }
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Users/Index">
+                                    <i class="fas fa-users"></i> Usuarios
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                    <partial name="_LoginPartial" />
+                </div>
+            </div>
+        </nav>
     </header>
 
     <div class="container">
@@ -21,7 +59,9 @@
     </div>
 
     <footer class="border-top footer text-muted">
-        <!-- ... código del footer ... -->
+        <div class="container">
+            &copy; @DateTime.Now.Year - Sistema de Pedidos
+        </div>
     </footer>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

@@ -1,0 +1,223 @@
+@page
+@model Aplicacion_Pedidos.Pages.Orders.StatisticsModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Estadísticas de Pedidos";
+    var culture = new CultureInfo("es-ES");
+}
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-shopping-cart me-2"></i>Total de Pedidos
+                </h6>
+                <h3 class="card-text">@Model.Statistics.TotalOrders</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-dollar-sign me-2"></i>Ingresos Totales
+                </h6>
+                <h3 class="card-text">@Model.Statistics.TotalRevenue.ToString("C2", culture)</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-box me-2"></i>Items Vendidos
+                </h6>
+                <h3 class="card-text">@Model.Statistics.TotalItemsSold</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-chart-line me-2"></i>Valor Promedio
+                </h6>
+                <h3 class="card-text">@Model.Statistics.AverageOrderValue.ToString("C2", culture)</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Pedidos por Estado
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="orderStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Ingresos por Período
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-trophy me-2"></i>Productos Más Vendidos
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="topProductsChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>Clientes Más Frecuentes
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="topCustomersChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Configuración común
+        Chart.defaults.font.family = "'Segoe UI', system-ui, -apple-system";
+        Chart.defaults.color = '#666';
+
+        // Gráfico de estados de pedidos
+        new Chart(document.getElementById('orderStatusChart'), {
+            type: 'pie',
+            data: {
+                labels: ['Pendiente', 'Procesando', 'Enviado', 'Entregado', 'Cancelado'],
+                datasets: [{
+                    data: [
+                        @Model.Statistics.PendingOrders,
+                        @Model.Statistics.ProcessingOrders,
+                        @Model.Statistics.ShippedOrders,
+                        @Model.Statistics.DeliveredOrders,
+                        @Model.Statistics.CanceledOrders
+                    ],
+                    backgroundColor: ['#ffc107', '#17a2b8', '#007bff', '#28a745', '#dc3545']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // Gráfico de ingresos
+        new Chart(document.getElementById('revenueChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Hoy', 'Esta Semana', 'Este Mes', 'Mes Anterior'],
+                datasets: [{
+                    label: 'Ingresos',
+                    data: [
+                        @Model.Statistics.RevenueToday,
+                        @Model.Statistics.RevenueThisWeek,
+                        @Model.Statistics.RevenueThisMonth,
+                        @Model.Statistics.RevenueLastMonth
+                    ],
+                    backgroundColor: '#007bff'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return new Intl.NumberFormat('es-ES', {
+                                    style: 'currency',
+                                    currency: 'EUR'
+                                }).format(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Gráfico de productos más vendidos
+        new Chart(document.getElementById('topProductsChart'), {
+            type: 'horizontalBar',
+            data: {
+                labels: [@Html.Raw(string.Join(",", Model.Statistics.TopProducts.Select(p => $"'{p.ProductName}'")))],
+                datasets: [{
+                    label: 'Cantidad Vendida',
+                    data: [@string.Join(",", Model.Statistics.TopProducts.Select(p => p.QuantitySold))],
+                    backgroundColor: '#28a745'
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // Gráfico de clientes más frecuentes
+        new Chart(document.getElementById('topCustomersChart'), {
+            type: 'horizontalBar',
+            data: {
+                labels: [@Html.Raw(string.Join(",", Model.Statistics.TopCustomers.Select(c => $"'{c.CustomerName}'")))],
+                datasets: [{
+                    label: 'Total Gastado',
+                    data: [@string.Join(",", Model.Statistics.TopCustomers.Select(c => c.TotalSpent))],
+                    backgroundColor: '#17a2b8'
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            callback: function(value) {
+                                return new Intl.NumberFormat('es-ES', {
+                                    style: 'currency',
+                                    currency: 'EUR'
+                                }).format(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+}
