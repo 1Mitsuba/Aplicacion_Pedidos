@@ -1,0 +1,108 @@
+@model Aplicacion_Pedidos.Models.Order
+
+@{
+    ViewData["Title"] = "Detalles del Pedido";
+}
+
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Pedido #@Model.Id</h4>
+            <span class="badge @Model.StatusClass">@Model.StatusText</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h5>Información del Cliente</h5>
+                <dl class="row">
+                    <dt class="col-sm-4">Nombre</dt>
+                    <dd class="col-sm-8">@Model.User?.Name</dd>
+
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">@Model.User?.Email</dd>
+
+                    @if (!string.IsNullOrEmpty(Model.ShippingAddress))
+                    {
+                        <dt class="col-sm-4">Dirección de Envío</dt>
+                        <dd class="col-sm-8">@Model.ShippingAddress</dd>
+                    }
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <h5>Información del Pedido</h5>
+                <dl class="row">
+                    <dt class="col-sm-4">Fecha</dt>
+                    <dd class="col-sm-8">@Model.OrderDate.ToString("dd/MM/yyyy HH:mm")</dd>
+
+                    <dt class="col-sm-4">Estado</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge @Model.StatusClass">@Model.StatusText</span>
+                    </dd>
+
+                    <dt class="col-sm-4">Total</dt>
+                    <dd class="col-sm-8">$@Model.Total.ToString("N2")</dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.Notes))
+        {
+            <div class="alert alert-info">
+                <h6>Notas:</h6>
+                <p class="mb-0">@Model.Notes</p>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Productos del Pedido</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>SKU</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unit.</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.OrderItems)
+                    {
+                        <tr>
+                            <td>@item.Product?.Name</td>
+                            <td>@item.Product?.SKU</td>
+                            <td>@item.Quantity</td>
+                            <td>$@item.UnitPrice.ToString("N2")</td>
+                            <td>$@item.Subtotal.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-end"><strong>Total:</strong></td>
+                        <td><strong>$@Model.Total.ToString("N2")</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3">
+    @if (User.IsInRole("Admin") || User.IsInRole("Empleado"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Editar
+        </a>
+    }
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Volver
+    </a>
+</div>

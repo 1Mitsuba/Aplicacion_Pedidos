@@ -78,7 +78,7 @@ namespace Aplicacion_Pedidos.Controllers
 
         // GET: Orders/Create
         [AuthorizeRoles(UserRole.Admin, UserRole.Empleado)]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
             ViewBag.Users = await _context.Users
                 .Where(u => u.IsActive)
@@ -313,5 +313,4 @@ namespace Aplicacion_Pedidos.Controllers
 
             return View("Index", orders);
         }
-    }
-}
+    }}
