@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Aplicacion_Pedidos.Data;
 using Aplicacion_Pedidos.Models;
 using Aplicacion_Pedidos.Models.Enums;
+using Aplicacion_Pedidos.Services.Notifications;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Aplicacion_Pedidos.Pages.Orders
@@ -12,10 +13,12 @@ namespace Aplicacion_Pedidos.Pages.Orders
     public class DetailsModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly INotificationService _notificationService;
 
-        public DetailsModel(ApplicationDbContext context)
+        public DetailsModel(ApplicationDbContext context, INotificationService notificationService)
         {
-            _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
         }
 
         [BindProperty]
@@ -25,6 +28,7 @@ namespace Aplicacion_Pedidos.Pages.Orders
         {
             if (id == null)
             {
+                _notificationService.AddNotification(TempData, "ID de pedido no especificado.", NotificationType.Error);
                 return NotFound();
             }
 
@@ -36,15 +40,29 @@ namespace Aplicacion_Pedidos.Pages.Orders
 
             if (order == null)
             {
+                _notificationService.AddNotification(TempData, "Pedido no encontrado.", NotificationType.Error);
                 return NotFound();
             }
 
             // Verificar acceso
             if (User.IsInRole(UserRole.Cliente.ToString()))
             {
-                var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+                var userIdClaim = User.FindFirst("UserId");
+                if (userIdClaim == null)
+                {
+                    _notificationService.AddNotification(TempData, "No se pudo verificar la identidad del usuario.", NotificationType.Error);
+                    return Forbid();
+                }
+
+                if (!int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    _notificationService.AddNotification(TempData, "ID de usuario inválido.", NotificationType.Error);
+                    return Forbid();
+                }
+
                 if (order.UserId != userId)
                 {
+                    _notificationService.AddNotification(TempData, "No tiene permiso para ver este pedido.", NotificationType.Warning);
                     return Forbid();
                 }
             }
@@ -57,6 +75,7 @@ namespace Aplicacion_Pedidos.Pages.Orders
         {
             if (!User.IsInRole(UserRole.Admin.ToString()) && !User.IsInRole(UserRole.Empleado.ToString()))
             {
+                _notificationService.AddNotification(TempData, "No tiene permisos para realizar esta acción.", NotificationType.Error);
                 return Forbid();
             }
 
@@ -70,60 +89,78 @@ namespace Aplicacion_Pedidos.Pages.Orders
 
                 if (order == null)
                 {
+                    _notificationService.AddNotification(TempData, "El pedido no fue encontrado.", NotificationType.Error);
                     return NotFound();
                 }
 
                 // Validaciones de cambio de estado
                 if (order.Status == OrderStatus.Cancelado)
                 {
-                    TempData["Error"] = "No se puede cambiar el estado de un pedido cancelado.";
+                    _notificationService.AddNotification(TempData, "No se puede cambiar el estado de un pedido cancelado.", NotificationType.Warning);
                     return RedirectToPage(new { id });
                 }
 
                 if (order.Status == OrderStatus.Entregado && newStatus != OrderStatus.Cancelado)
                 {
-                    TempData["Error"] = "No se puede cambiar el estado de un pedido entregado.";
+                    _notificationService.AddNotification(TempData, "No se puede cambiar el estado de un pedido entregado.", NotificationType.Warning);
                     return RedirectToPage(new { id });
                 }
 
                 // Validar secuencia lógica de estados
                 if (!IsValidStatusTransition(order.Status, newStatus))
                 {
-                    TempData["Error"] = "La transición de estado solicitada no es válida.";
+                    _notificationService.AddNotification(TempData, $"La transición de estado de {order.Status} a {newStatus} no es válida.", NotificationType.Warning);
                     return RedirectToPage(new { id });
                 }
 
                 // Manejo especial para cancelación
                 if (newStatus == OrderStatus.Cancelado)
                 {
-                    foreach (var item in order.OrderItems)
+                    foreach (var item in order.OrderItems.Where(oi => oi.Product != null))
                     {
-                        if (item.Product != null)
-                        {
-                            item.Product.Stock += item.Quantity;
-                            _context.Update(item.Product);
-                        }
+                        item.Product!.Stock += item.Quantity;
+                        _context.Update(item.Product);
                     }
+                    _notificationService.AddNotification(TempData, "Stock restaurado para todos los productos del pedido.", NotificationType.Info);
                 }
 
+                var oldStatus = order.Status;
                 order.Status = newStatus;
                 order.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                TempData["Success"] = $"Estado del pedido actualizado a {newStatus}.";
+                _notificationService.AddNotification(TempData, $"Estado del pedido actualizado exitosamente de {oldStatus} a {newStatus}.", NotificationType.Success);
+
+                // Notificación específica según el estado
+                switch (newStatus)
+                {
+                    case OrderStatus.Procesando:
+                        _notificationService.AddNotification(TempData, "El pedido ha entrado en proceso de preparación.", NotificationType.Info);
+                        break;
+                    case OrderStatus.Enviado:
+                        _notificationService.AddNotification(TempData, "El pedido ha sido enviado al cliente.", NotificationType.Info);
+                        break;
+                    case OrderStatus.Entregado:
+                        _notificationService.AddNotification(TempData, "¡Pedido entregado exitosamente!", NotificationType.Success);
+                        break;
+                    case OrderStatus.Cancelado:
+                        _notificationService.AddNotification(TempData, "El pedido ha sido cancelado y el stock ha sido restaurado.", NotificationType.Warning);
+                        break;
+                }
+
                 return RedirectToPage(new { id });
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                TempData["Error"] = "Error al cambiar el estado del pedido: " + ex.Message;
+                _notificationService.AddNotification(TempData, $"Error al cambiar el estado del pedido: {ex.Message}", NotificationType.Error);
                 return RedirectToPage(new { id });
             }
         }
 
-        public bool IsValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus)
+        private static bool IsValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus)
         {
             return (currentStatus, newStatus) switch
             {

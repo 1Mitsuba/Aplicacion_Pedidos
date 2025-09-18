@@ -1,0 +1,54 @@
+@using Aplicacion_Pedidos.Services.Notifications
+@inject INotificationService NotificationService
+
+@{
+    var notifications = NotificationService.GetNotifications(TempData);
+}
+
+@if (notifications.Any())
+{
+    <div id="notifications-container" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        @foreach (var notification in notifications)
+        {
+            var bgClass = notification.Type switch
+            {
+                NotificationType.Success => "bg-success",
+                NotificationType.Info => "bg-info",
+                NotificationType.Warning => "bg-warning",
+                NotificationType.Error => "bg-danger",
+                _ => "bg-info"
+            };
+
+            var iconClass = notification.Type switch
+            {
+                NotificationType.Success => "fas fa-check-circle",
+                NotificationType.Info => "fas fa-info-circle",
+                NotificationType.Warning => "fas fa-exclamation-triangle",
+                NotificationType.Error => "fas fa-times-circle",
+                _ => "fas fa-info-circle"
+            };
+
+            <div class="toast @bgClass text-white" role="alert" aria-live="assertive" aria-atomic="true" 
+                 data-bs-autohide="@notification.AutoHide.ToString().ToLower()" 
+                 data-bs-delay="@(notification.DurationSeconds * 1000)">
+                <div class="toast-header @bgClass text-white">
+                    <i class="@iconClass me-2"></i>
+                    <strong class="me-auto">Notificación</strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    @notification.Message
+                </div>
+            </div>
+        }
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var toasts = document.querySelectorAll('.toast');
+            toasts.forEach(function (toast) {
+                new bootstrap.Toast(toast).show();
+            });
+        });
+    </script>
+}
